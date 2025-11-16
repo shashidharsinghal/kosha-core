@@ -1,0 +1,1 @@
+{"version":3,"file":"upi-account.entity.d.ts","sourceRoot":"","sources":["../../../../src/models/postgres/payments/upi-account.entity.ts"],"names":[],"mappings":"AAEA,qBACa,UAAU;IAErB,EAAE,EAAG,MAAM,CAAC;IAGZ,MAAM,EAAG,MAAM,CAAC;IAGhB,QAAQ,EAAG,MAAM,CAAC;IAGlB,KAAK,EAAG,MAAM,CAAC;IAOf,MAAM,EAAG,MAAM,CAAC;IAGhB,QAAQ,EAAG,IAAI,CAAC;IAGhB,KAAK,CAAC,EAAE,MAAM,CAAC;CAChB"}

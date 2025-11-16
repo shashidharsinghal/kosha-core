@@ -1,0 +1,1 @@
+{"version":3,"file":"asset-price.entity.d.ts","sourceRoot":"","sources":["../../../../src/models/postgres/investments/asset-price.entity.ts"],"names":[],"mappings":"AAEA,qBAEa,UAAU;IAErB,EAAE,EAAG,MAAM,CAAC;IAGZ,MAAM,EAAG,MAAM,CAAC;IAGhB,KAAK,EAAG,MAAM,CAAC;IAGf,IAAI,EAAG,IAAI,CAAC;IAGZ,MAAM,CAAC,EAAE,MAAM,CAAC;IAGhB,SAAS,EAAG,IAAI,CAAC;CAClB"}

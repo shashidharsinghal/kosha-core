@@ -1,0 +1,102 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: kosha-postgres
+    environment:
+      POSTGRES_USER: kosha_user
+      POSTGRES_PASSWORD: kosha_password
+      POSTGRES_DB: kosha_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kosha_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kosha-network
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: kosha-mongodb
+    environment:
+      MONGO_INITDB_DATABASE: kosha
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kosha-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: kosha-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kosha-network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kosha-backend
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3000}
+      POSTGRES_HOST: ${POSTGRES_HOST:-postgres}
+      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER:-kosha_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-kosha_password}
+      POSTGRES_DB: ${POSTGRES_DB:-kosha_db}
+      POSTGRES_URL: ${POSTGRES_URL:-postgresql://kosha_user:kosha_password@postgres:5432/kosha_db}
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017/kosha}
+      MONGODB_DB: ${MONGODB_DB:-kosha}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_SECRET: ${JWT_SECRET:-local-dev-secret-change-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-local-dev-refresh-secret-change-in-production}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:3001,http://localhost:5173}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - kosha-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+
+networks:
+  kosha-network:
+    driver: bridge
+

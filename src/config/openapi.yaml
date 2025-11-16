@@ -1,0 +1,2212 @@
+openapi: 3.0.0
+info:
+  title: Kosha Personal Finance API
+  version: 1.0.0
+  description: |
+    Backend API for Kosha Personal Finance Application.
+    Provides endpoints for authentication, bills, expenses, income, investments, payments, notifications, and dashboard.
+  contact:
+    name: Kosha API Support
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.kosha.app/api/v1
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User authentication and account management
+  - name: Bills
+    description: Bill management and tracking
+  - name: Expenses
+    description: Expense tracking and management
+  - name: Income
+    description: Income tracking and management
+  - name: Investments
+    description: Investment portfolio monitoring
+  - name: Payments
+    description: Payment processing and UPI management
+  - name: Notifications
+    description: Notification preferences and delivery
+  - name: Dashboard
+    description: Financial dashboard and analytics
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from login endpoint
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Email and password are required
+            details:
+              type: object
+
+    ApiResponse:
+      type: object
+      properties:
+        data:
+          type: object
+        error:
+          $ref: '#/components/schemas/Error'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    RefreshResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        refreshToken:
+          type: string
+
+    Bill:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        title:
+          type: string
+        amount:
+          type: number
+        dueDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [PENDING, PAID, OVERDUE]
+        type:
+          type: string
+          enum: [ELECTRICITY, WATER, GAS, INTERNET, PHONE, CREDIT_CARD, LOAN, INSURANCE, OTHER]
+        source:
+          type: string
+          enum: [GMAIL, SMS, MANUAL]
+        recurrence:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Expense:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        amount:
+          type: number
+        category:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+          format: date
+        paymentMethod:
+          type: string
+          enum: [CASH, UPI, CARD, BANK_TRANSFER]
+        source:
+          type: string
+          enum: [MANUAL, UPI, SMS, CARD]
+        recurrence:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Income:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        amount:
+          type: number
+        category:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+          format: date
+        importSource:
+          type: string
+          enum: [MANUAL, GMAIL]
+        recurrence:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Asset:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        symbol:
+          type: string
+        type:
+          type: string
+          enum: [STOCK, MUTUAL_FUND, ETF, BOND, FIXED_DEPOSIT, OTHER]
+        name:
+          type: string
+        institution:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Investment:
+      type: object
+      properties:
+        asset:
+          $ref: '#/components/schemas/Asset'
+        currentUnits:
+          type: number
+        averageCost:
+          type: number
+        currentValue:
+          type: number
+        roi:
+          type: number
+        roiPercentage:
+          type: number
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        billId:
+          type: string
+          nullable: true
+        amount:
+          type: number
+        status:
+          type: string
+          enum: [PENDING, PROCESSING, SUCCESS, FAILED, CANCELLED]
+        paymentMethod:
+          type: string
+        upiAccountId:
+          type: string
+          nullable: true
+        initiatedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        errorCode:
+          type: string
+          nullable: true
+        errorMessage:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    UPIAccount:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        provider:
+          type: string
+        upiId:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+        linkedAt:
+          type: string
+          format: date-time
+
+    Mandate:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        billId:
+          type: string
+        upiAccountId:
+          type: string
+        amount:
+          type: number
+        frequency:
+          type: string
+          enum: [MONTHLY, QUARTERLY, YEARLY]
+        nextDueDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [ACTIVE, PAUSED, CANCELLED]
+        providerMandateId:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        type:
+          type: string
+          enum: [BILL_REMINDER, PAYMENT_CONFIRMATION, BUDGET_ALERT, INSIGHT, SYSTEM]
+        channel:
+          type: string
+          enum: [EMAIL, SMS, PUSH]
+        title:
+          type: string
+        message:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, SENT, FAILED]
+        metadata:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        sentAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    NotificationPreferences:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        channels:
+          type: array
+          items:
+            type: string
+            enum: [EMAIL, SMS, PUSH]
+        dndStart:
+          type: string
+          format: time
+          nullable: true
+        dndEnd:
+          type: string
+          format: time
+          nullable: true
+        timezone:
+          type: string
+        weeklySummaryDay:
+          type: integer
+          minimum: 0
+          maximum: 6
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: {}
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalIncome:
+          type: number
+        totalExpenses:
+          type: number
+        netSavings:
+          type: number
+        upcomingBills:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bill'
+        expenseDistribution:
+          type: object
+        incomeDistribution:
+          type: object
+        netWorth:
+          type: number
+        investmentValue:
+          type: number
+        outstandingBills:
+          type: number
+
+    HealthMetrics:
+      type: object
+      properties:
+        savingsRate:
+          type: number
+        expenseToIncomeRatio:
+          type: number
+        billPaymentRate:
+          type: number
+        investmentGrowth:
+          type: number
+        cashFlow:
+          type: number
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                name:
+                  type: string
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '409':
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RefreshResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          success:
+                            type: boolean
+
+  /auth/link-gmail:
+    post:
+      tags:
+        - Authentication
+      summary: Link Gmail account
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - oauthCode
+              properties:
+                oauthCode:
+                  type: string
+      responses:
+        '200':
+          description: Gmail linked successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          success:
+                            type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /bills:
+    get:
+      tags:
+        - Bills
+      summary: List bills with filters and pagination
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, PAID, OVERDUE]
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [ELECTRICITY, WATER, GAS, INTERNET, PHONE, CREDIT_CARD, LOAN, INSURANCE, OTHER]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: -dueDate
+      responses:
+        '200':
+          description: List of bills
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+    post:
+      tags:
+        - Bills
+      summary: Create or update a bill
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - amount
+                - dueDate
+              properties:
+                id:
+                  type: string
+                title:
+                  type: string
+                amount:
+                  type: number
+                dueDate:
+                  type: string
+                  format: date
+                status:
+                  type: string
+                  enum: [PENDING, PAID, OVERDUE]
+                type:
+                  type: string
+                  enum: [ELECTRICITY, WATER, GAS, INTERNET, PHONE, CREDIT_CARD, LOAN, INSURANCE, OTHER]
+                source:
+                  type: string
+                  enum: [GMAIL, SMS, MANUAL]
+                recurrence:
+                  type: object
+      responses:
+        '200':
+          description: Bill created/updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Bill'
+
+  /bills/upcoming:
+    get:
+      tags:
+        - Bills
+      summary: Get upcoming bills
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: days
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        '200':
+          description: List of upcoming bills
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Bill'
+
+  /bills/recurring-suggestions:
+    get:
+      tags:
+        - Bills
+      summary: Get recurring bill suggestions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of suggested recurring bills
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Bill'
+
+  /bills/import:
+    post:
+      tags:
+        - Bills
+      summary: Import bills from Gmail/SMS
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                source:
+                  type: string
+                  enum: [GMAIL, SMS]
+      responses:
+        '200':
+          description: Bills imported successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          imported:
+                            type: integer
+                          failed:
+                            type: integer
+
+  /bills/{billId}/paid:
+    patch:
+      tags:
+        - Bills
+      summary: Mark bill as paid
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: billId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                paymentDate:
+                  type: string
+                  format: date
+                paymentMethod:
+                  type: string
+      responses:
+        '200':
+          description: Bill marked as paid
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Bill'
+
+  /expenses:
+    get:
+      tags:
+        - Expenses
+      summary: List expenses with filters and pagination
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: paymentMethod
+          in: query
+          schema:
+            type: string
+            enum: [CASH, UPI, CARD, BANK_TRANSFER]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: -date
+      responses:
+        '200':
+          description: List of expenses
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+    post:
+      tags:
+        - Expenses
+      summary: Add an expense
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - category
+                - date
+              properties:
+                amount:
+                  type: number
+                category:
+                  type: string
+                description:
+                  type: string
+                date:
+                  type: string
+                  format: date
+                paymentMethod:
+                  type: string
+                  enum: [CASH, UPI, CARD, BANK_TRANSFER]
+      responses:
+        '201':
+          description: Expense created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Expense'
+
+  /expenses/summary:
+    get:
+      tags:
+        - Expenses
+      summary: Get expense summary
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Expense summary
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          total:
+                            type: number
+                          byCategory:
+                            type: object
+                          byMonth:
+                            type: object
+                          burnRate:
+                            type: number
+
+  /expenses/import:
+    post:
+      tags:
+        - Expenses
+      summary: Import expenses
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - source
+              properties:
+                source:
+                  type: string
+                  enum: [UPI, SMS, CARD]
+      responses:
+        '200':
+          description: Expenses imported successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          imported:
+                            type: integer
+                          failed:
+                            type: integer
+
+  /expenses/{expenseId}:
+    patch:
+      tags:
+        - Expenses
+      summary: Update an expense
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: expenseId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                category:
+                  type: string
+                description:
+                  type: string
+                date:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Expense updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Expense'
+    delete:
+      tags:
+        - Expenses
+      summary: Delete an expense
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: expenseId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Expense deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          success:
+                            type: boolean
+
+  /income:
+    get:
+      tags:
+        - Income
+      summary: List income records with filters and pagination
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          schema:
+            type: string
+            default: -date
+      responses:
+        '200':
+          description: List of income records
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+    post:
+      tags:
+        - Income
+      summary: Add an income record
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - category
+                - date
+              properties:
+                amount:
+                  type: number
+                category:
+                  type: string
+                description:
+                  type: string
+                date:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: Income record created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Income'
+
+  /income/summary:
+    get:
+      tags:
+        - Income
+      summary: Get income summary
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Income summary
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          total:
+                            type: number
+                          byCategory:
+                            type: object
+                          byMonth:
+                            type: object
+
+  /income/import:
+    post:
+      tags:
+        - Income
+      summary: Import income from Gmail
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Income imported successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          imported:
+                            type: integer
+                          failed:
+                            type: integer
+
+  /income/{incomeId}:
+    patch:
+      tags:
+        - Income
+      summary: Update an income record
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: incomeId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: number
+                category:
+                  type: string
+                description:
+                  type: string
+                date:
+                  type: string
+                  format: date
+      responses:
+        '200':
+          description: Income record updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Income'
+    delete:
+      tags:
+        - Income
+      summary: Delete an income record
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: incomeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Income record deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          success:
+                            type: boolean
+
+  /investments:
+    get:
+      tags:
+        - Investments
+      summary: List investments (portfolio holdings)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of investments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Investment'
+
+  /investments/summary:
+    get:
+      tags:
+        - Investments
+      summary: Get portfolio summary
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Portfolio summary
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          totalValue:
+                            type: number
+                          totalCost:
+                            type: number
+                          roi:
+                            type: number
+                          roiPercentage:
+                            type: number
+                          byType:
+                            type: object
+                          byAsset:
+                            type: array
+
+  /investments/assets:
+    post:
+      tags:
+        - Investments
+      summary: Add an asset
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - symbol
+                - type
+                - name
+              properties:
+                symbol:
+                  type: string
+                type:
+                  type: string
+                  enum: [STOCK, MUTUAL_FUND, ETF, BOND, FIXED_DEPOSIT, OTHER]
+                name:
+                  type: string
+                institution:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Asset created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Asset'
+
+  /investments/assets/{assetId}:
+    patch:
+      tags:
+        - Investments
+      summary: Update an asset
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                institution:
+                  type: string
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Asset updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Asset'
+
+  /investments/transactions:
+    post:
+      tags:
+        - Investments
+      summary: Add a transaction
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - assetId
+                - transactionDate
+                - transactionType
+                - units
+                - pricePerUnit
+              properties:
+                assetId:
+                  type: string
+                transactionDate:
+                  type: string
+                  format: date
+                transactionType:
+                  type: string
+                  enum: [BUY, SELL, DIVIDEND, SPLIT]
+                units:
+                  type: number
+                pricePerUnit:
+                  type: number
+                fees:
+                  type: number
+                notes:
+                  type: string
+      responses:
+        '201':
+          description: Transaction created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+
+  /investments/transactions/{transactionId}:
+    patch:
+      tags:
+        - Investments
+      summary: Update a transaction
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                transactionDate:
+                  type: string
+                  format: date
+                units:
+                  type: number
+                pricePerUnit:
+                  type: number
+                fees:
+                  type: number
+      responses:
+        '200':
+          description: Transaction updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags:
+        - Investments
+      summary: Delete a transaction
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: transactionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Transaction deleted successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+
+  /investments/{assetId}/price:
+    get:
+      tags:
+        - Investments
+      summary: Get live price for an asset
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Live price
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          symbol:
+                            type: string
+                          price:
+                            type: number
+                          date:
+                            type: string
+                            format: date-time
+
+  /investments/{assetId}/history:
+    get:
+      tags:
+        - Investments
+      summary: Get price history for an asset
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Price history
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            date:
+                              type: string
+                              format: date
+                            price:
+                              type: number
+
+  /investments/{assetId}/transactions:
+    get:
+      tags:
+        - Investments
+      summary: Get transaction history for an asset
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Transaction history
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+
+  /payments/accounts:
+    get:
+      tags:
+        - Payments
+      summary: List linked UPI accounts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of UPI accounts
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/UPIAccount'
+
+  /payments/link-upi:
+    post:
+      tags:
+        - Payments
+      summary: Link a UPI account
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - oauthCode
+              properties:
+                oauthCode:
+                  type: string
+      responses:
+        '200':
+          description: UPI account linked successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UPIAccount'
+
+  /payments/mandates:
+    get:
+      tags:
+        - Payments
+      summary: List autopay mandates
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [ACTIVE, PAUSED, CANCELLED]
+      responses:
+        '200':
+          description: List of mandates
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Mandate'
+    post:
+      tags:
+        - Payments
+      summary: Create an autopay mandate
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - billId
+                - upiAccountId
+                - amount
+                - frequency
+              properties:
+                billId:
+                  type: string
+                upiAccountId:
+                  type: string
+                amount:
+                  type: number
+                frequency:
+                  type: string
+                  enum: [MONTHLY, QUARTERLY, YEARLY]
+      responses:
+        '201':
+          description: Mandate created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Mandate'
+
+  /payments/mandates/{mandateId}:
+    patch:
+      tags:
+        - Payments
+      summary: Update a mandate
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: mandateId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ACTIVE, PAUSED, CANCELLED]
+      responses:
+        '200':
+          description: Mandate updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Mandate'
+
+  /payments:
+    get:
+      tags:
+        - Payments
+      summary: List payments with filters
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, PROCESSING, SUCCESS, FAILED, CANCELLED]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of payments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+
+  /payments/{paymentId}:
+    get:
+      tags:
+        - Payments
+      summary: Get payment status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment status
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Payment'
+
+  /payments/bills/{billId}:
+    post:
+      tags:
+        - Payments
+      summary: Pay a bill
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: billId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                upiAccountId:
+                  type: string
+                idempotencyKey:
+                  type: string
+      responses:
+        '200':
+          description: Payment initiated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Payment'
+
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: List notifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [BILL_REMINDER, PAYMENT_CONFIRMATION, BUDGET_ALERT, INSIGHT, SYSTEM]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, SENT, FAILED]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PaginatedResponse'
+    post:
+      tags:
+        - Notifications
+      summary: Schedule a notification
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - channel
+                - title
+                - message
+              properties:
+                type:
+                  type: string
+                  enum: [BILL_REMINDER, PAYMENT_CONFIRMATION, BUDGET_ALERT, INSIGHT, SYSTEM]
+                channel:
+                  type: string
+                  enum: [EMAIL, SMS, PUSH]
+                title:
+                  type: string
+                message:
+                  type: string
+                scheduledAt:
+                  type: string
+                  format: date-time
+                metadata:
+                  type: object
+      responses:
+        '201':
+          description: Notification scheduled successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Notification'
+
+  /notifications/preferences:
+    get:
+      tags:
+        - Notifications
+      summary: Get notification preferences
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Notification preferences
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NotificationPreferences'
+    post:
+      tags:
+        - Notifications
+      summary: Update notification preferences
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                channels:
+                  type: array
+                  items:
+                    type: string
+                    enum: [EMAIL, SMS, PUSH]
+                dndStart:
+                  type: string
+                  format: time
+                dndEnd:
+                  type: string
+                  format: time
+                timezone:
+                  type: string
+                weeklySummaryDay:
+                  type: integer
+                  minimum: 0
+                  maximum: 6
+      responses:
+        '200':
+          description: Preferences updated successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/NotificationPreferences'
+
+  /notifications/{notificationId}/send:
+    post:
+      tags:
+        - Notifications
+      summary: Send a notification immediately
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notification sent successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Notification'
+
+  /dashboard/summary:
+    get:
+      tags:
+        - Dashboard
+      summary: Get financial summary
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Financial summary
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/DashboardSummary'
+
+  /dashboard/health-metrics:
+    get:
+      tags:
+        - Dashboard
+      summary: Get health metrics
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Health metrics
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/HealthMetrics'
+
+  /dashboard/trends:
+    get:
+      tags:
+        - Dashboard
+      summary: Get financial trends
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: metric
+          in: query
+          schema:
+            type: string
+            enum: [income, expenses, savings, investments]
+      responses:
+        '200':
+          description: Financial trends
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          metric:
+                            type: string
+                          data:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                date:
+                                  type: string
+                                  format: date
+                                value:
+                                  type: number
+
